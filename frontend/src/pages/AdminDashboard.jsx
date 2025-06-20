@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
+const baseUrl = process.env.REACT_APP_API_URL; // Only use the deployed backend
+
 export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [submissions, setSubmissions] = useState([]);
@@ -10,7 +12,7 @@ export default function AdminDashboard() {
   const [errorSubs, setErrorSubs] = useState('');
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/users')
+    axios.get(`${baseUrl}/api/users`)
       .then(res => {
         setUsers(res.data);
         setErrorUsers('');
@@ -18,7 +20,7 @@ export default function AdminDashboard() {
       .catch(() => setErrorUsers('Failed to load users.'))
       .finally(() => setLoadingUsers(false));
 
-    axios.get('http://localhost:5000/api/submissions')
+    axios.get(`${baseUrl}/api/submissions`)
       .then(res => {
         setSubmissions(res.data);
         setErrorSubs('');
@@ -43,7 +45,7 @@ export default function AdminDashboard() {
           <table border="1" cellPadding="8" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th>Name</th>          {/* Added Name column */}
+                <th>Name</th>
                 <th>Email</th>
                 <th>Last Login</th>
               </tr>
@@ -51,7 +53,7 @@ export default function AdminDashboard() {
             <tbody>
               {users.map(u => (
                 <tr key={u.email}>
-                  <td>{u.name || '-'}</td> {/* Show name or '-' if missing */}
+                  <td>{u.name || '-'}</td>
                   <td>{u.email}</td>
                   <td>{new Date(u.lastLogin).toLocaleString()}</td>
                 </tr>

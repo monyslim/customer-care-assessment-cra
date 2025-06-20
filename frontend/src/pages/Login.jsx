@@ -8,6 +8,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const API_BASE = process.env.REACT_APP_API_URL;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -19,7 +21,7 @@ export default function Login() {
 
     try {
       // Send login info to backend to record login
-      await axios.post('http://localhost:5000/api/login', { name, email });
+      await axios.post(`${API_BASE}/api/login`, { name, email });
 
       // Save user info in localStorage for protected routes
       localStorage.setItem('user', JSON.stringify({ name, email }));

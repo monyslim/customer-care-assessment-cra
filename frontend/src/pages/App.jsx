@@ -13,8 +13,10 @@ export default function App() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const API_BASE = process.env.REACT_APP_API_URL;
+
   useEffect(() => {
-    axios.get('http://localhost:5000/api/questions')
+    axios.get(`${API_BASE}/api/questions`)
       .then(res => {
         setQuestions(res.data);
         setLoading(false);
@@ -23,7 +25,7 @@ export default function App() {
         setError('Failed to load questions.');
         setLoading(false);
       });
-  }, []);
+  }, [API_BASE]);
 
   useEffect(() => {
     if (timeLeft <= 0 && !submitted) {
@@ -63,11 +65,11 @@ export default function App() {
     setSubmitting(true);
     setSubmitted(true);
 
-    const userEmail = localStorage.getItem('user') || 'anonymous';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     try {
-      await axios.post('http://localhost:5000/api/submit', {
-        user: userEmail,
+      await axios.post(`${API_BASE}/api/submit`, {
+        user: user.email || 'anonymous',
         answers
       });
       alert('Test submitted! Thank you.');
