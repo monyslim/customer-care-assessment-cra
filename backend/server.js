@@ -31,10 +31,13 @@ app.get('/api/questions', (req, res) => {
   res.json(questions);
 });
 
-// Record user login
+// Record user login with IP address
 app.post('/api/login', (req, res) => {
   const { name, email } = req.body;
   if (!email || !name) return res.status(400).json({ error: 'Name and Email required' });
+
+  // Extract IP address - support for proxies
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
   const users = readJSON(USERS_FILE);
   const existingUser = users.find(u => u.email === email);
@@ -43,14 +46,14 @@ app.post('/api/login', (req, res) => {
   if (existingUser) {
     existingUser.lastLogin = now;
     existingUser.name = name; // update name if changed
+    existingUser.ip = ip; // update IP on every login
   } else {
-    users.push({ name, email, lastLogin: now });
+    users.push({ name, email, lastLogin: now, ip });
   }
 
   writeJSON(USERS_FILE, users);
   res.json({ message: 'Login recorded' });
 });
-
 
 // Save test submissions
 app.post('/api/submit', (req, res) => {
