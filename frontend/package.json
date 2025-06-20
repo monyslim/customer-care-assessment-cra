@@ -21,7 +21,7 @@
   "devDependencies": {
     "gh-pages": "^5.0.0"
   },
-  "homepage": "/",
+  "homepage": ".",
   "browserslist": {
     "production": [
       ">0.2%",
