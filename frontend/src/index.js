@@ -7,16 +7,31 @@ import Login from './pages/Login';           // User login page
 import AdminLogin from './pages/AdminLogin'; // Admin login page
 import AdminDashboard from './pages/AdminDashboard'; // Admin panel
 
-/// Route protection for test takers
+// Route protection for test takers
 function ProtectedRoute({ children }) {
-  const userJSON = localStorage.getItem('user');
-  const user = userJSON ? JSON.parse(userJSON) : null;
-  return user ? children : <Navigate to="/login" />;
+  const [isAuth, setIsAuth] = React.useState(null);
+
+  React.useEffect(() => {
+    const userJSON = localStorage.getItem('user');
+    setIsAuth(!!userJSON);
+  }, []);
+
+  if (isAuth === null) return null; // or a loading spinner
+
+  return isAuth ? children : <Navigate to="/login" />;
 }
 
 // Route protection for admins
 function AdminRoute({ children }) {
-  const isAdmin = localStorage.getItem('isAdmin');
+  const [isAdmin, setIsAdmin] = React.useState(null);
+
+  React.useEffect(() => {
+    const isAdminVal = localStorage.getItem('isAdmin');
+    setIsAdmin(!!isAdminVal);
+  }, []);
+
+  if (isAdmin === null) return null; // or a loading spinner
+
   return isAdmin ? children : <Navigate to="/admin" />;
 }
 
