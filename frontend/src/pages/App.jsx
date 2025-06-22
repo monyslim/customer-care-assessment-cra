@@ -57,6 +57,14 @@ export default function App() {
     }
   }
 
+  function handleSkip() {
+    const qid = questions[currentIndex].id;
+    if (!(qid in answers)) {
+      setAnswers({ ...answers, [qid]: null }); // explicitly mark as skipped
+    }
+    handleNext();
+  }
+
   async function handleSubmit() {
     if (submitted || submitting) return;
 
