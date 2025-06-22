@@ -90,14 +90,11 @@ export default function App() {
 
   if (loading) return <p>Loading questions...</p>;
   if (error) return <p style={{ color: 'red' }}>{error}</p>;
-
   if (questions.length === 0) return <p>No questions available.</p>;
-
   if (submitted) return <h2>Test submitted! Thank you.</h2>;
 
   const q = questions[currentIndex];
   const selected = answers[q.id];
-
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
@@ -106,8 +103,10 @@ export default function App() {
       <div style={{ marginBottom: 20, fontWeight: 'bold' }}>
         Time Left: {minutes}:{seconds.toString().padStart(2, '0')}
       </div>
+
       <h3>Question {currentIndex + 1} of {questions.length}</h3>
       <p>{q.question}</p>
+
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {q.options.map(opt => (
           <li key={opt} style={{ margin: '8px 0' }}>
@@ -130,12 +129,16 @@ export default function App() {
         <button onClick={handlePrev} disabled={currentIndex === 0} style={{ marginRight: 10 }}>
           Previous
         </button>
+
         {currentIndex < questions.length - 1 ? (
-          <button onClick={handleNext} disabled={!selected}>
-            Next
-          </button>
+          <>
+            <button onClick={handleNext} style={{ marginRight: 10 }}>
+              Next
+            </button>
+            <button onClick={handleSkip}>Skip</button>
+          </>
         ) : (
-          <button onClick={handleSubmit} disabled={!selected || submitting}>
+          <button onClick={handleSubmit} disabled={submitting}>
             {submitting ? 'Submitting...' : 'Submit'}
           </button>
         )}
