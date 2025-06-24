@@ -6,6 +6,7 @@ export default function Login() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const API_BASE = process.env.REACT_APP_API_URL;
@@ -14,22 +15,42 @@ export default function Login() {
     e.preventDefault();
     setError('');
 
-    if (!name || !email) {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName || !trimmedEmail) {
       setError('Name and Email are required');
       return;
     }
 
-    try {
-      // Send login info to backend to record login
-      await axios.post(`${API_BASE}/api/login`, { name, email });
+    // Simple email format check
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(trimmedEmail)) {
+      setError('Please enter a valid email');
+      return;
+    }
 
-      // Save user info in localStorage for protected routes
-      localStorage.setItem('user', JSON.stringify({ name, email }));
+    try {
+      setLoading(true);
+
+      // Send login data to backend
+      await axios.post(`${API_BASE}/api/login`, {
+        name: trimmedName,
+        email: trimmedEmail
+      });
+
+      // Save user data in localStorage
+      localStorage.setItem('user', JSON.stringify({
+        name: trimmedName,
+        email: trimmedEmail
+      }));
 
       // Redirect to test page
       navigate('/');
     } catch (err) {
       setError('Failed to login. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -58,7 +79,13 @@ export default function Login() {
           />
         </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
-        <button type="submit" style={{ padding: '8px 16px' }}>Login</button>
+        <button
+          type="submit"
+          style={{ padding: '8px 16px' }}
+          disabled={loading}
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
       </form>
     </div>
   );

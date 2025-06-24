@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-const baseUrl = process.env.REACT_APP_API_URL; // Only use the deployed backend
+const baseUrl = process.env.REACT_APP_API_URL; // Deployed backend URL
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
@@ -10,7 +11,18 @@ export default function AdminDashboard() {
   const [loadingSubs, setLoadingSubs] = useState(true);
   const [errorUsers, setErrorUsers] = useState('');
   const [errorSubs, setErrorSubs] = useState('');
+  const navigate = useNavigate();
 
+  // ✅ Protect route: redirect if not admin
+  useEffect(() => {
+    const isAdmin = localStorage.getItem('isAdmin');
+    if (isAdmin !== 'true') {
+      alert('Access denied. Admins only.');
+      navigate('/admin-login');
+    }
+  }, [navigate]);
+
+  // ✅ Fetch users and submissions
   useEffect(() => {
     axios.get(`${baseUrl}/api/users`)
       .then(res => {
@@ -29,9 +41,25 @@ export default function AdminDashboard() {
       .finally(() => setLoadingSubs(false));
   }, []);
 
+  // ✅ Logout function
+  const handleLogout = () => {
+    localStorage.removeItem('isAdmin');
+    navigate('/admin-login');
+  };
+
   return (
     <div style={{ maxWidth: 900, margin: '20px auto', fontFamily: 'Arial' }}>
-      <h2>Admin Dashboard</h2>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20
+      }}>
+        <h2>Admin Dashboard</h2>
+        <button onClick={handleLogout} style={{ padding: '6px 12px' }}>
+          Logout
+        </button>
+      </div>
 
       <section style={{ marginBottom: 40 }}>
         <h3>Logged In Users</h3>

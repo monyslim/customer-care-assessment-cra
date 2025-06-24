@@ -25,13 +25,30 @@ function writeJSON(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-// Serve questions for frontend
-app.get('/api/questions', (req, res) => {
+// 🔐 Middleware: Require login before accessing protected routes
+function requireLogin(req, res, next) {
+  const email = req.headers['x-user-email'];
+  if (!email) {
+    return res.status(401).json({ error: 'Email header (x-user-email) required' });
+  }
+
+  const users = readJSON(USERS_FILE);
+  const isLoggedIn = users.some(user => user.email === email);
+
+  if (!isLoggedIn) {
+    return res.status(401).json({ error: 'User not logged in' });
+  }
+
+  next();
+}
+
+// ✅ Protected: Serve questions only if logged in
+app.get('/api/questions', requireLogin, (req, res) => {
   const questions = readJSON(QUESTIONS_FILE);
   res.json(questions);
 });
 
-// Record user login
+// ✅ Record user login
 app.post('/api/login', (req, res) => {
   const { name, email } = req.body;
   if (!email || !name) return res.status(400).json({ error: 'Name and Email required' });
@@ -51,8 +68,7 @@ app.post('/api/login', (req, res) => {
   res.json({ message: 'Login recorded' });
 });
 
-
-// Save test submissions
+// ✅ Save test submissions
 app.post('/api/submit', (req, res) => {
   const { user, answers } = req.body;
   if (!user || !answers) return res.status(400).json({ error: 'User and answers required' });
@@ -68,13 +84,13 @@ app.post('/api/submit', (req, res) => {
   res.json({ message: 'Submission saved' });
 });
 
-// List all logged in users (admin)
+// ✅ List all logged in users (admin)
 app.get('/api/users', (req, res) => {
   const users = readJSON(USERS_FILE);
   res.json(users);
 });
 
-// List all submissions (admin)
+// ✅ List all submissions (admin)
 app.get('/api/submissions', (req, res) => {
   const submissions = readJSON(SUBMISSIONS_FILE);
   res.json(submissions);

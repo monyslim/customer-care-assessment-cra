@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const TEST_DURATION_SECONDS = 30 * 60; // 30 minutes
+const LOCAL_STORAGE_KEY = 'testAnswers';
 
 export default function App() {
   const [questions, setQuestions] = useState([]);
@@ -12,11 +13,37 @@ export default function App() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [user, setUser] = useState(null);
+  const [submissionSummary, setSubmissionSummary] = useState(null);
 
   const API_BASE = process.env.REACT_APP_API_URL;
 
+  // 🔐 Load user + questions
   useEffect(() => {
-    axios.get(`${API_BASE}/api/questions`)
+    const storedUser = localStorage.getItem('user');
+    if (!storedUser) {
+      alert('Please log in first.');
+      window.location.href = '/login';
+      return;
+    }
+
+    const parsedUser = JSON.parse(storedUser);
+    if (!parsedUser.email) {
+      alert('Invalid user. Please log in again.');
+      window.location.href = '/login';
+      return;
+    }
+    setUser(parsedUser);
+
+    // Load saved answers (auto-save)
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (saved) setAnswers(JSON.parse(saved));
+
+    axios.get(`${API_BASE}/api/questions`, {
+      headers: {
+        'x-user-email': parsedUser.email
+      }
+    })
       .then(res => {
         setQuestions(res.data);
         setLoading(false);
@@ -27,9 +54,10 @@ export default function App() {
       });
   }, [API_BASE]);
 
+  // ⏱ Timer + Auto-submit on timeout
   useEffect(() => {
     if (timeLeft <= 0 && !submitted) {
-      handleSubmit();
+      handleSubmit(true); // silent submit
       return;
     }
     if (submitted) return;
@@ -37,9 +65,15 @@ export default function App() {
     const timerId = setInterval(() => {
       setTimeLeft(t => t - 1);
     }, 1000);
-
     return () => clearInterval(timerId);
   }, [timeLeft, submitted]);
+
+  // 💾 Auto-save on answer change
+  useEffect(() => {
+    if (!submitted) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(answers));
+    }
+  }, [answers, submitted]);
 
   function handleSelect(option) {
     setAnswers({ ...answers, [questions[currentIndex].id]: option });
@@ -60,38 +94,71 @@ export default function App() {
   function handleSkip() {
     const qid = questions[currentIndex].id;
     if (!(qid in answers)) {
-      setAnswers({ ...answers, [qid]: null }); // explicitly mark as skipped
+      setAnswers({ ...answers, [qid]: null });
     }
     handleNext();
   }
 
-  async function handleSubmit() {
-    if (submitted || submitting) return;
+  async function handleSubmit(silent = false) {
+  if (submitted || submitting) return;
 
-    if (!window.confirm('Are you sure you want to submit your test?')) return;
+  if (!silent && !window.confirm('Are you sure you want to submit your test?')) return;
 
-    setSubmitting(true);
-    setSubmitted(true);
+  setSubmitting(true);
+  setSubmitted(true);
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+  // ✅ Ensure all questions are included (answered or skipped)
+  const completeAnswers = {};
+  questions.forEach(q => {
+    completeAnswers[q.id] = answers[q.id] ?? null;
+  });
 
-    try {
-      await axios.post(`${API_BASE}/api/submit`, {
-        user: user.email || 'anonymous',
-        answers
-      });
-      alert('Test submitted! Thank you.');
-    } catch (err) {
+  try {
+    await axios.post(`${API_BASE}/api/submit`, {
+      user: user.email,
+      answers: completeAnswers
+    });
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    setSubmissionSummary(completeAnswers); // display full summary
+  } catch (err) {
+    if (!silent) {
       alert('Failed to submit answers.');
       setSubmitted(false);
       setSubmitting(false);
     }
   }
+}
 
+
+  function handleLogout() {
+    localStorage.removeItem('user');
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    window.location.href = '/login';
+  }
+
+  // UI States
   if (loading) return <p>Loading questions...</p>;
   if (error) return <p style={{ color: 'red' }}>{error}</p>;
   if (questions.length === 0) return <p>No questions available.</p>;
-  if (submitted) return <h2>Test submitted! Thank you.</h2>;
+
+  // ✅ Show submission summary after test
+  if (submitted && submissionSummary) {
+    return (
+      <div style={{ maxWidth: 700, margin: '30px auto', fontFamily: 'Arial' }}>
+        <h2>Thank you, {user.name}! Your test has been submitted.</h2>
+        <h3>Your Answers Summary:</h3>
+        <ul>
+          {questions.map(q => (
+            <li key={q.id} style={{ marginBottom: 10 }}>
+              <strong>Q:</strong> {q.question}<br />
+              <strong>Your Answer:</strong> {submissionSummary[q.id] ?? 'Skipped'}
+            </li>
+          ))}
+        </ul>
+        <button onClick={handleLogout} style={{ marginTop: 20 }}>Logout</button>
+      </div>
+    );
+  }
 
   const q = questions[currentIndex];
   const selected = answers[q.id];
@@ -100,6 +167,20 @@ export default function App() {
 
   return (
     <div style={{ maxWidth: 700, margin: '30px auto', fontFamily: 'Arial' }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20
+      }}>
+        <div>
+          <strong>User:</strong> {user.name} ({user.email})
+        </div>
+        <button onClick={handleLogout} style={{ padding: '5px 12px' }}>
+          Logout
+        </button>
+      </div>
+
       <div style={{ marginBottom: 20, fontWeight: 'bold' }}>
         Time Left: {minutes}:{seconds.toString().padStart(2, '0')}
       </div>
@@ -138,7 +219,7 @@ export default function App() {
             <button onClick={handleSkip}>Skip</button>
           </>
         ) : (
-          <button onClick={handleSubmit} disabled={submitting}>
+          <button onClick={() => handleSubmit(false)} disabled={submitting}>
             {submitting ? 'Submitting...' : 'Submit'}
           </button>
         )}
