@@ -96,6 +96,14 @@ app.get('/api/submissions', (req, res) => {
   res.json(submissions);
 });
 
+
+// ✅✅✅ ADD THIS HEALTH CHECK ROUTE (⬇️⬇️⬇️)
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+// ✅✅✅ END OF ADDITION
+
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
